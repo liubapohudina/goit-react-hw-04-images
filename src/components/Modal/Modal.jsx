@@ -30,7 +30,6 @@ export const Modal = ({ arrayItem, closeModal }) => {
          return (
             <div className={styles.overlay} onClick={handleClick}>
                 <div className={styles.modal}>
-                    modal
                     <img src={pathToLargeImage} alt={alt} />
                 </div>
             </div>
