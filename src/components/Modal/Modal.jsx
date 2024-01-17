@@ -1,52 +1,43 @@
 import styles from './modal.module.css';
 import PropTypes from "prop-types";
-import React, { Component } from 'react';
+import React, { useEffect } from 'react';
 
 
-export class Modal extends Component {
-    static propTypes = {
-        src: PropTypes.object,
-        alt: PropTypes.string,
-        closeModal: PropTypes.func.isRequired,
+export const Modal = ({ arrayItem, closeModal }) => {
+  const pathToLargeImage = arrayItem.src.large;
+  const alt = arrayItem.src.alt;
+  
+  const handleClick = (event) => {
+    const currentClickItem = event.target.nodeName;
+    if (currentClickItem === "DIV") {
+      closeModal()        
     }
-    state = {
-        isOpen: true,
-    }
+  
+}
 
-    
-      componentDidMount() {
-    document.addEventListener('keydown', this.handleKeyDown);
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.handleKeyDown);
-    }
-    
-
-    handleClickElement = (event) => {
-      const currentClickItem = event.target.nodeName;
-        if (currentClickItem  === "DIV") {
-            this.props.closeModal();
-        }
-    }
-      handleKeyDown = (event) => {
+  useEffect(() => {
+    const handleClickElement = (event) => {
     if (event.key === 'Escape') {
-      this.props.closeModal();
+      closeModal();
     }
-  };
+  }
+    document.addEventListener("keydown", handleClickElement);
 
+    return () => document.removeEventListener("keydown", handleClickElement);
+  }, [closeModal])
+    
 
-
-    render() {
-        const { src, alt } = this.props.arrayItem;
-        const { large } = src;
          return (
-            <div className={styles.overlay} onClick={this.handleClickElement}>
+            <div className={styles.overlay} onClick={handleClick}>
                 <div className={styles.modal}>
                     modal
-                    <img src={large} alt={alt} />
+                    <img src={pathToLargeImage} alt={alt} />
                 </div>
             </div>
         )
-    }
+}
+
+Modal.propTypes = {
+  arrayItem: PropTypes.object.isRequired,
+ closeModal: PropTypes.func.isRequired, 
 }

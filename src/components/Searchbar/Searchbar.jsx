@@ -1,39 +1,37 @@
 import styles from './searchbar.module.css';
 import PropTypes from "prop-types";
 import { CiSearch } from "react-icons/ci";
-import { Component } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 
-export class Searchbar extends Component  {
-  static propTypes = {
-    handleClick: PropTypes.func,
-  }
-  state = {
-  search : '',
-}
-  onChange = (event) => {
-    this.setState({ search : event.currentTarget.value.toLowerCase().trim()})
-  }
-  handleClick = (event) => {
-    event.preventDefault()
-    if (this.state.search.trim() === '') {
-      toast.warn("Please enter different words")
-      return
-    }
-    this.props.handleClickSubmit(this.state.search)
-    this.setState({search: ''})
-  } 
+export const Searchbar = ({ handleClickSubmit }) => {
+  const [search, setSearch] = useState('');
 
-  render() {
+  const onChange = (event) => {
+    setSearch(event.currentTarget.value);
+  }
+
+  const handleClick = (event) => {
+    event.preventDefault();
+
+    if (search === '') {
+      toast.warn("Please enter words");
+      return;
+    }
+
+    handleClickSubmit({search});
+    setSearch('');
+  }
+
     return (<header className={styles.searchbar}>
-      <form onSubmit={this.handleClick} className={styles.form}>
+      <form onSubmit={handleClick} className={styles.form}>
         <button type="submit" className={styles.button}>
           <CiSearch className={styles.icon} />
           <span className={styles.buttonLabel}>Search</span>
         </button>
 
         <input
-          onChange={this.onChange}
+          onChange={onChange}
           className={styles.input}
           type="text"
           autoComplete="off"
@@ -44,4 +42,7 @@ export class Searchbar extends Component  {
     </header>
     )
   }
-}
+
+Searchbar.propTypes = {
+    handleClickSubmit: PropTypes.func.isRequired,
+  }

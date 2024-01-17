@@ -1,7 +1,7 @@
 import styles from './imageGallery.module.css';
 import PropTypes from "prop-types";
 import { fetchData, setLocalStorage } from 'helpers/helpers';
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageGalleryItem } from 'components/ImageGalleryItem/ImageGalleryItem';
 import { toast } from 'react-toastify';
 import { Button } from '../Button/Button';
@@ -10,127 +10,122 @@ import { Modal } from 'components/Modal/Modal';
 
 
 
-export class ImageGallery extends Component {
-    static propTypes = {
-        search: PropTypes.string.isRequired,
-    }
-    state = {
-        totalHits: 0,
-        page: 1,
-        query: [],
-        btnLoadMore: false,
-        search: '',
-        isLoading: false,
-        isModal: false, 
-        modalItem: [],
-    }
+export const ImageGallery = ({ searchWord }) => {
+    const [isMounted, setIsMounted] = useState(false);
+    const [totalHits, setTotalHits] = useState(0);
+    const [photosLenght, setPhotosLength] = useState(0);
+    const [page, setPage] = useState(1);
+    const [query, setQuery] = useState([]);
+    const [btnLoadMore, setBtnLoadMore] = useState(false);
+    const [search, setSearch] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [isModal, setIsModal] = useState(false);
+    const [modalItem, setModalItem] = useState([]);
+
+    useEffect(() => {
+        setSearch(searchWord)
+    }, [searchWord]);
+
+
+    useEffect(() => {
+        if (search !== searchWord) {
+            setQuery([]);
+            setPage(1);
+            setTotalHits(0);
+            setPhotosLength(0);
+            setIsLoading(false);
+            setSearch(searchWord);
+            setIsMounted(false);
+        }
+    }, [search, searchWord]);
+
+    useEffect(() => {
+        if (typeof (search) === 'object') {
+            return
+        }
+     
+        const fetchDataAndUpdateState = async () => {
+
+            setIsLoading(true);
+            try {
+                const data = await fetchData(search, page);
+                setQuery(prevQuery => [...prevQuery, ...data.photos]);
+                setTotalHits(data.total_results)
+                setPhotosLength(data.photos.length);
+                setIsMounted(true);
+            } catch {
+                toast.error("Something wrong...");
+            } finally {
+                setIsLoading(false);
+            }
+
+        }
+        if (search) {
+            fetchDataAndUpdateState();
+        }
+    }, [search, page]);
+
+    useEffect(() => {
+        setLocalStorage('query', { query })
+    }, [query]);
+
+
+
+    useEffect(() => {
+        if (isMounted) {
+            if (totalHits === 0) {
+                toast.info("Nothing found!Please enter another word")
+            }
+            if (totalHits !== 0 && page === 1) {
+                toast.info(`We found ${totalHits} pictures!`)
+            }
+        }
+        return setIsMounted(false);
+    }, [isMounted, totalHits, search, searchWord, page])
+
+    useEffect(() => {
+        if (totalHits > 12) {
+            setBtnLoadMore(true)
+        }
+        if (photosLenght <= 11) {
+            setBtnLoadMore(false)
+        }
+    }, [totalHits, photosLenght])
   
-
-
-    componentDidUpdate(prevProps, prevState) {
-    const { page, search } = this.state;
-    const prevSearch = prevProps.search;
-    const nextSearch = this.props.search;
-
-        if (prevSearch !== nextSearch) {
-        this.setState({
-            query: [],
-            page: 1,
-            search: nextSearch,
-         });
-        }
-        if (prevState.search !== search || prevState.page !== page) {
-            this.fetchDataAndUpdateState();
-            return;
-            }
-}
-
     
 
-    fetchDataAndUpdateState = async () => {
-        const { page, query } = this.state;
-        const { search } = this.props;
-        this.setState({
-            isLoading: true,
-        })
-        const data = await fetchData(search, page);
-        //console.log(data)
-        try {
-            if (data.photos.length === 0) {
-                toast.warn("Not found pictures!");
-                this.setState({
-                    query: [],
-                    page: 1,
-                })
-            }
-                if (data.total_results > 12) {
-                this.setState({
-                    btnLoadMore: true,
-                })
-            }
-            if (data.photos.length <= 11) {
-                this.setState({
-                    btnLoadMore: false,
-                })
-            }
-                this.setState({
-                totalHits: data.total_results,
-                query: [...query, ...data.photos],
-         }, () => {
-                setLocalStorage('query', (this.state.query))
-       });
-
-        
-        } catch {
-            toast.error("Something wrong...");
-        } finally {
-            this.setState({
-                isLoading: false,
-            })
-        }
-    }
 
     
-    handleClickLoadMore = async () => {
-            const { page } = this.state;
-            this.setState({
-                page: page + 1,
-            })
+    const handleClickLoadMore = () => {
+        setPage(prevPage => prevPage + 1);
     };
-    handleClickGalleryItem = (id) => {
-        // console.log(event.target.nodeName)
-        const { query } = this.state;
-        // const currentItem = event.target.id;
+    const handleClickGalleryItem = (id) => {
         const currentItemInfo = query.find(item => item.id === id)
         if (currentItemInfo) {
-            this.setState({
-                modalItem: currentItemInfo,
-                isModal: true,
-            })
+            setModalItem(currentItemInfo);
+            setIsModal(true);
         }
     }
-   
-
-
-    render() {
-        const { query, isLoading, btnLoadMore, isModal } = this.state;
     
-        const elements = query
-            ? query.map(({ id, src, alt }) => (
-                <ImageGalleryItem id={id} src={src} key={id} alt={alt} handleClick={this.handleClickGalleryItem} />
-            ))
-            : null;
-
+    const elements = query
+        ? query.map(({ id, src, alt }) => (
+            <ImageGalleryItem id={id} src={src} key={id} alt={alt} handleClick={handleClickGalleryItem} />
+        ))
+        : null;
+    
         return (
             <div className='listImages'>
             <div className={styles.blockCards}>
                 <ul className={styles.gallery}>{elements}</ul>
-                {isLoading ? <Loader /> : btnLoadMore &&  <Button handleOnClickBtn={this.handleClickLoadMore} />}
-                {isModal && <Modal arrayItem={this.state.modalItem} closeModal={() => this.setState({ isModal: false })}/>}
+                {isLoading ? <Loader /> : btnLoadMore &&  <Button handleOnClickBtn={handleClickLoadMore} />}
+                {isModal && <Modal arrayItem={modalItem} closeModal={() => setIsModal(false)}/>}
                 </div>
                 </div>
         );
     }
-}
 
 
+
+ImageGallery.propTypes = {
+    search: PropTypes.string,
+};
